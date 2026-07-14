@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
-// ✅ Perbaiki: dynamic import dengan benar
+// ✅ Dynamic import ChatBox dengan benar
 const ChatBox = dynamic(
   () => import('@/components/chat/ChatBox'),
   {

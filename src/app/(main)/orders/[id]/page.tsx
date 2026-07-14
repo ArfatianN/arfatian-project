@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { formatRupiah, formatDate } from '@/lib/utils'
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge'
 
-// ✅ Perbaiki: dynamic import dengan benar
+// ✅ Dynamic import ChatBox dengan benar
 const ChatBox = dynamic(
   () => import('@/components/chat/ChatBox'),
   {
@@ -21,6 +21,7 @@ const ChatBox = dynamic(
   }
 )
 
+// ✅ Dynamic import ReviewForm dengan benar
 const ReviewForm = dynamic(
   () => import('@/components/orders/ReviewForm'),
   {
