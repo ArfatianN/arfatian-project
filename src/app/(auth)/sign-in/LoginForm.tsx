@@ -85,9 +85,6 @@ export default function LoginForm() {
         </form>
 
         <div className="text-center text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
-          <p className="font-medium text-gray-700 dark:text-gray-300">Akun Demo:</p>
-          <p>Customer: <span className="font-mono">customer@email.com</span> / <span className="font-mono">password123</span></p>
-          <p>Admin: <span className="font-mono">admin@email.com</span> / <span className="font-mono">password123</span></p>
           <p className="mt-2">* Admin harus didaftarkan via <Link href="/admin-register" className="text-blue-500 hover:underline">Admin Register</Link></p>
         </div>
       </div>

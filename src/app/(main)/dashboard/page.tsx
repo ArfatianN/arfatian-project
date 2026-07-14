@@ -1,6 +1,35 @@
+import { cache } from 'react' // ✅ Tambahkan import cache
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatRupiah, formatDate, getOrderStatusText, getOrderStatusColor } from '@/lib/utils'
+
+// ✅ Caching query untuk orders customer
+const getCustomerOrders = cache(async (customerId: string) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      services (
+        name,
+        price,
+        duration
+      )
+    `)
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+  return { data, error }
+})
+
+const getCustomerProfile = cache(async (userId: string) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', userId)
+    .single()
+  return { data, error }
+})
 
 export default async function CustomerDashboard() {
   const supabase = await createClient()
@@ -19,24 +48,11 @@ export default async function CustomerDashboard() {
     )
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .single()
+  // 1. Ambil data profile (dengan cache)
+  const { data: profile } = await getCustomerProfile(user.id)
 
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select(`
-      *,
-      services (
-        name,
-        price,
-        duration
-      )
-    `)
-    .eq('customer_id', user.id)
-    .order('created_at', { ascending: false })
+  // 2. Ambil data orders (dengan cache)
+  const { data: orders, error } = await getCustomerOrders(user.id)
 
   const totalOrders = orders?.length || 0
   const pendingOrders = orders?.filter(o => o.status === 'pending').length || 0
@@ -56,24 +72,20 @@ export default async function CustomerDashboard() {
           </p>
         </div>
 
-        {/* Statistik Cards - Dark Mode Ready */}
+        {/* Statistik Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {/* Card 1 */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-6 transition-colors duration-200">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Pesanan</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalOrders}</p>
           </div>
-          {/* Card 2 */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-6 transition-colors duration-200">
             <p className="text-sm text-gray-500 dark:text-gray-400">Menunggu Pembayaran</p>
             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{pendingOrders}</p>
           </div>
-          {/* Card 3 */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-6 transition-colors duration-200">
             <p className="text-sm text-gray-500 dark:text-gray-400">Selesai</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">{completedOrders}</p>
           </div>
-          {/* Card 4 */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-6 transition-colors duration-200">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Belanja</p>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatRupiah(totalSpent)}</p>

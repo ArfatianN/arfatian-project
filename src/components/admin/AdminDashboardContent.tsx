@@ -4,20 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { formatRupiah, getOrderStatusText, getOrderStatusColor } from '@/lib/utils'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-} from 'chart.js'
-import { Bar, Doughnut } from 'react-chartjs-2'
-
-// Registrasi Chart.js
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement)
+import AdminCharts from './AdminCharts' // ✅ Import komponen chart terpisah
 
 interface Order {
   id: string
@@ -129,17 +116,8 @@ export default function AdminDashboardContent({
           </div>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-800/50">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pendapatan Dikonfirmasi per Bulan</h2>
-            {monthlyData && <Bar data={monthlyData} options={{ responsive: true }} />}
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-800/50">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status Pesanan</h2>
-            {statusData && <Doughnut data={statusData} options={{ responsive: true }} />}
-          </div>
-        </div>
+        {/* Charts - Gunakan AdminCharts dengan lazy loading */}
+        <AdminCharts monthlyData={monthlyData} statusData={statusData} />
 
         {/* Daftar Pesanan */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 overflow-hidden">

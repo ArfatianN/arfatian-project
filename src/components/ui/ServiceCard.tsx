@@ -12,7 +12,12 @@ interface Service {
   image_url?: string | null
 }
 
-export default function ServiceCard({ service }: { service: Service }) {
+interface ServiceCardProps {
+  service: Service
+  priority?: boolean // ✅ Tambahkan prop untuk priority
+}
+
+export default function ServiceCard({ service, priority = false }: ServiceCardProps) {
   // Jika service tidak valid, return null
   if (!service || !service.id) {
     return null
@@ -29,6 +34,7 @@ export default function ServiceCard({ service }: { service: Service }) {
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            priority={priority} // ✅ Gunakan prop priority
           />
         </div>
       ) : (

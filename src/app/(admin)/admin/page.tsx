@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminDashboardContent from '@/components/admin/AdminDashboardContent'
 
+// ✅ ISR: Revalidate setiap 1 jam (3600 detik)
+export const revalidate = 3600
+
 export default async function AdminDashboard() {
   // 1. Cek login & role admin
   const supabase = await createClient()
@@ -54,7 +57,7 @@ export default async function AdminDashboard() {
     if (customerIds.length > 0) {
       const { data: profiles, error: profilesError } = await supabaseAdmin
         .from('profiles')
-        .select('id, full_name')  // ✅ HAPUS email
+        .select('id, full_name')
         .in('id', customerIds)
 
       if (profilesError) {

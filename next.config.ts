@@ -16,8 +16,6 @@ const nextConfig: NextConfig = {
         pathname: "/storage/v1/object/public/**",
       },
     ],
-    // 🔥 HAPUS unoptimized untuk production
-    // unoptimized: process.env.NODE_ENV === "development",
   },
 };
 

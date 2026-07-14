@@ -1,11 +1,39 @@
+import { cache } from 'react' // ✅ Tambahkan import cache
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatRupiah, formatDate, getOrderStatusText, getOrderStatusColor } from '@/lib/utils'
 
+// ✅ Halaman dinamis (karena user-specific dan searchParams)
+export const dynamic = 'force-dynamic'
+
+// ✅ Caching query orders berdasarkan user dan status filter
+const getOrders = cache(async (userId: string, statusFilter: string) => {
+  const supabase = await createClient()
+  let query = supabase
+    .from('orders')
+    .select(`
+      *,
+      services (
+        name,
+        price,
+        duration
+      )
+    `)
+    .eq('customer_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (statusFilter !== 'semua') {
+    query = query.eq('status', statusFilter)
+  }
+
+  const { data, error } = await query
+  return { data, error }
+})
+
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: { status?: string }
+  searchParams: Promise<{ status?: string }> // ✅ searchParams adalah Promise
 }) {
   const supabase = await createClient()
 
@@ -24,28 +52,12 @@ export default async function OrdersPage({
     )
   }
 
-  // 2. Ambil parameter filter status dari URL
-  const statusFilter = searchParams.status || 'semua'
+  // 2. Ambil parameter filter status dari URL (await karena Promise)
+  const { status = 'semua' } = await searchParams
+  const statusFilter = status
 
-  // 3. Query orders dengan filter status
-  let query = supabase
-    .from('orders')
-    .select(`
-      *,
-      services (
-        name,
-        price,
-        duration
-      )
-    `)
-    .eq('customer_id', user.id)
-    .order('created_at', { ascending: false })
-
-  if (statusFilter !== 'semua') {
-    query = query.eq('status', statusFilter)
-  }
-
-  const { data: orders, error } = await query
+  // 3. Query orders dengan cache
+  const { data: orders, error } = await getOrders(user.id, statusFilter)
 
   // 4. Statistik
   const totalOrders = orders?.length || 0

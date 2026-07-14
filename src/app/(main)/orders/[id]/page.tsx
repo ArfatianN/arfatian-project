@@ -1,9 +1,28 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { formatRupiah, formatDate } from '@/lib/utils'
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge'
-import ReviewForm from '@/components/orders/ReviewForm'
+
+// ✅ LAZY LOADING: ChatBox hanya dimuat jika dibutuhkan (SSR dimatikan)
+const ChatBox = dynamic(() => import('@/components/chat/ChatBox'), {
+  ssr: false,
+  loading: () => (
+    <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 w-48 rounded"></div>
+  ),
+})
+
+// ✅ LAZY LOADING: ReviewForm hanya muncul jika status completed dan belum review
+const ReviewForm = dynamic(() => import('@/components/orders/ReviewForm'), {
+  ssr: false,
+  loading: () => (
+    <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-24 w-full rounded"></div>
+  ),
+})
+
+// ✅ ISR: Revalidate setiap 1 jam (3600 detik)
+export const revalidate = 3600
 
 export default async function OrderDetailPage({
   params,
@@ -201,6 +220,7 @@ export default async function OrderDetailPage({
           )}
 
           {!isAdmin && order.status === 'completed' && !hasReview && (
+            // ✅ ReviewForm di-lazy load, hanya muncul jika kondisi terpenuhi
             <ReviewForm orderId={order.id} serviceId={order.service_id} />
           )}
 

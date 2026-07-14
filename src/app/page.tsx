@@ -53,9 +53,13 @@ export default async function HomePage() {
           </div>
         ) : services && services.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {services.map((service) => (
-              <ServiceCard key={service.id} service={service} />
-            ))}
+          {services.map((service, index) => (
+            <ServiceCard
+              key={service.id}
+              service={service}
+              priority={index === 0} // ✅ Hanya gambar pertama yang priority
+            />
+          ))}
           </div>
         ) : (
           <div className="text-center py-12">

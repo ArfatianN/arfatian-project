@@ -1,7 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import ChatBox from '@/components/chat/ChatBox'
+import dynamic from 'next/dynamic' // ✅ Tambahkan import dynamic
+
+// ✅ Lazy loading ChatBox (hanya dimuat saat halaman diakses)
+const ChatBox = dynamic(() => import('@/components/chat/ChatBox'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex justify-center items-center h-64">
+      <div className="animate-pulse flex flex-col items-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-500 dark:text-gray-400">Memuat chat...</p>
+      </div>
+    </div>
+  ),
+})
 
 export default async function AdminChatPage({
   params,

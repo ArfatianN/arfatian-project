@@ -1,33 +1,28 @@
+import { cache } from 'react' // ✅ Tambahkan import cache
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { formatRupiah, formatDate } from '@/lib/utils'
 
-export default async function ServiceDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>  // ← PERBAIKAN: params adalah Promise
-}) {
+// ✅ ISR: Revalidate setiap 1 jam
+export const revalidate = 3600
+
+// ✅ Caching query untuk service
+const getService = cache(async (id: string) => {
   const supabase = await createClient()
-
-  // ✅ AWAIT params untuk mendapatkan id
-  const { id } = await params
-
-  // 1. Ambil data jasa
-  const { data: service, error: serviceError } = await supabase
+  const { data, error } = await supabase
     .from('services')
     .select('*')
     .eq('id', id)
     .single()
+  return { data, error }
+})
 
-  if (serviceError || !service) {
-    console.error('Service not found:', id, serviceError)
-    notFound()
-  }
-
-  // 2. Ambil review untuk jasa ini
-  const { data: reviews } = await supabase
+// ✅ Caching query untuk reviews
+const getReviews = cache(async (serviceId: string) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase
     .from('reviews')
     .select(`
       *,
@@ -35,8 +30,33 @@ export default async function ServiceDetailPage({
         full_name
       )
     `)
-    .eq('service_id', id)
+    .eq('service_id', serviceId)
     .order('created_at', { ascending: false })
+  return { data, error }
+})
+
+export default async function ServiceDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const supabase = await createClient()
+  const { id } = await params
+
+  // 1. Ambil data jasa (dengan cache)
+  const { data: service, error: serviceError } = await getService(id)
+
+  if (serviceError || !service) {
+    console.error('Service not found:', id, serviceError)
+    notFound()
+  }
+
+  // 2. Ambil review untuk jasa ini (dengan cache)
+  const { data: reviews, error: reviewsError } = await getReviews(id)
+
+  if (reviewsError) {
+    console.error('Error fetching reviews:', reviewsError)
+  }
 
   // 3. Hitung rata-rata rating
   const averageRating = reviews && reviews.length > 0
