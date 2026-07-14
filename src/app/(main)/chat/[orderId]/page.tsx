@@ -1,12 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
-
-// ✅ Dynamic import ChatBox (tanpa loading state)
-const ChatBox = dynamic(() => import('@/components/chat/ChatBox'), {
-  ssr: false,
-})
+import ChatBoxWrapper from '@/components/chat/ChatBoxWrapper'
 
 export default async function CustomerChatPage({
   params,
@@ -16,13 +11,11 @@ export default async function CustomerChatPage({
   const supabase = await createClient()
   const { orderId } = await params
 
-  // 1. Cek login
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     redirect('/sign-in')
   }
 
-  // 2. Ambil data order dan customer_id
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select('customer_id, status')
@@ -34,7 +27,6 @@ export default async function CustomerChatPage({
     notFound()
   }
 
-  // 3. Pastikan order milik user yang login
   if (order.customer_id !== user.id) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -49,7 +41,6 @@ export default async function CustomerChatPage({
     )
   }
 
-  // 4. Cari admin
   const { data: admin, error: adminError } = await supabase
     .from('profiles')
     .select('id')
@@ -70,7 +61,7 @@ export default async function CustomerChatPage({
               ← Kembali ke Detail Pesanan
             </Link>
           </div>
-          <ChatBox
+          <ChatBoxWrapper
             orderId={orderId}
             currentUserId={user.id}
             otherUserId={room.admin_id}
@@ -90,7 +81,6 @@ export default async function CustomerChatPage({
     }
   }
 
-  // 5. Pastikan chat room sudah ada
   const { data: existingRoom } = await supabase
     .from('chat_rooms')
     .select('id')
@@ -115,7 +105,7 @@ export default async function CustomerChatPage({
           ← Kembali ke Detail Pesanan
         </Link>
       </div>
-      <ChatBox
+      <ChatBoxWrapper
         orderId={orderId}
         currentUserId={user.id}
         otherUserId={admin.id}

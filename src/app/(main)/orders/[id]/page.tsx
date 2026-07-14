@@ -1,19 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { formatRupiah, formatDate } from '@/lib/utils'
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge'
-
-// ✅ Dynamic import ChatBox (tanpa loading state)
-const ChatBox = dynamic(() => import('@/components/chat/ChatBox'), {
-  ssr: false,
-})
-
-// ✅ Dynamic import ReviewForm (tanpa loading state)
-const ReviewForm = dynamic(() => import('@/components/orders/ReviewForm'), {
-  ssr: false,
-})
+import ChatBoxWrapper from '@/components/chat/ChatBoxWrapper'
+import ReviewFormWrapper from '@/components/orders/ReviewFormWrapper'
 
 export default async function OrderDetailPage({
   params,
@@ -23,13 +14,11 @@ export default async function OrderDetailPage({
   const supabase = await createClient()
   const { id } = await params
 
-  // 1. Cek login
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     redirect('/sign-in')
   }
 
-  // 2. Ambil data order
   const { data: order, error } = await supabase
     .from('orders')
     .select(`
@@ -53,7 +42,6 @@ export default async function OrderDetailPage({
     notFound()
   }
 
-  // 3. Cek kepemilikan
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
@@ -77,16 +65,13 @@ export default async function OrderDetailPage({
     )
   }
 
-  // 4. Cek review
   const { data: existingReview } = await supabase
     .from('reviews')
     .select('id')
     .eq('order_id', order.id)
     .maybeSingle()
-
   const hasReview = !!existingReview
 
-  // 5. Cek chat room
   const { data: chatRoom } = await supabase
     .from('chat_rooms')
     .select('id, admin_id')
@@ -193,7 +178,7 @@ export default async function OrderDetailPage({
 
         <div className="flex flex-wrap gap-4">
           {chatRoom && adminId ? (
-            <ChatBox
+            <ChatBoxWrapper
               orderId={order.id}
               currentUserId={user.id}
               otherUserId={adminId}
@@ -204,7 +189,7 @@ export default async function OrderDetailPage({
           )}
 
           {!isAdmin && order.status === 'completed' && !hasReview && (
-            <ReviewForm orderId={order.id} serviceId={order.service_id} />
+            <ReviewFormWrapper orderId={order.id} serviceId={order.service_id} />
           )}
 
           <Link
