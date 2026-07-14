@@ -7,14 +7,22 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('📩 Webhook received:', JSON.stringify(body, null, 2))
 
-    // 1. Verifikasi signature (manual HMAC-SHA512)
+    // 1. Verifikasi signature (Midtrans menggunakan HMAC-SHA512)
     const signature = request.headers.get('x-midtrans-signature') || ''
     const serverKey = process.env.MIDTRANS_SERVER_KEY!
 
+    const { orders_id, status_code, gross_amount } = body
+
+    // Format signature yang benar: order_id + status_code + gross_amount + server_key
+    const signatureString = `${orders_id}${status_code}${gross_amount}${serverKey}`
+
     const expectedSignature = crypto
       .createHmac('sha512', serverKey)
-      .update(JSON.stringify(body))
+      .update(signatureString)
       .digest('hex')
+
+    console.log('🔑 Expected signature:', expectedSignature)
+    console.log('🔑 Received signature:', signature)
 
     if (signature !== expectedSignature) {
       console.warn('❌ Invalid signature!')
