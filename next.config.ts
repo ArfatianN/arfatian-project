@@ -17,6 +17,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Tambahkan header CSP khusus untuk halaman checkout
+  async headers() {
+    return [
+      {
+        source: "/checkout/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value:
+              "script-src 'self' 'unsafe-inline' https://app.sandbox.midtrans.com https://api.sandbox.midtrans.com https://snap-assets.sandbox.midtrans.com https://pay.google.com https://gwk.gopayapi.com https://www.googletagmanager.com;",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

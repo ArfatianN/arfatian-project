@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     // Parameter Midtrans
     const parameter = {
       transaction_details: {
-        order_id: order.order_code, // ⚠️ Pakai order_code (unik), bukan ID
+        order_id: order.order_code,
         gross_amount: order.total_amount,
       },
       customer_details: {
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       .from('orders')
       .update({
         midtrans_token: transaction.token,
-        midtrans_order_id: order.order_code, // Pakai order_code
+        midtrans_order_id: order.order_code,
         payment_method: 'midtrans',
       })
       .eq('id', order.id)

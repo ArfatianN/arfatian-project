@@ -1,18 +1,14 @@
+import { cache } from 'react' // ✅ Tambahkan cache
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatRupiah, formatDate, getOrderStatusText, getOrderStatusColor } from '@/lib/utils'
 
-export default async function AdminOrdersPage({
-  searchParams,
-}: {
-  searchParams: { status?: string }
-}) {
+// ✅ Halaman dinamis karena filter status
+export const dynamic = 'force-dynamic'
+
+// ✅ Caching query untuk orders (admin melihat semua)
+const getOrders = cache(async (statusFilter: string) => {
   const supabase = await createClient()
-
-  // 1. Ambil parameter filter status
-  const statusFilter = searchParams.status || 'semua'
-
-  // 2. Query orders dengan filter status
   let query = supabase
     .from('orders')
     .select('*')
@@ -22,12 +18,27 @@ export default async function AdminOrdersPage({
     query = query.eq('status', statusFilter)
   }
 
-  const { data: orders, error } = await query
+  const { data, error } = await query
+  return { data, error }
+})
 
-  // 3. Kumpulkan customer_id unik
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }> // ✅ searchParams adalah Promise
+}) {
+  const { status } = await searchParams // ✅ Await searchParams
+  const statusFilter = status || 'semua'
+
+  const supabase = await createClient()
+
+  // Ambil orders dengan cache
+  const { data: orders, error } = await getOrders(statusFilter)
+
+  // Kumpulkan customer_id unik
   const customerIds = [...new Set(orders?.map(o => o.customer_id).filter(Boolean) || [])]
 
-  // 4. Ambil data customer
+  // Ambil data customer
   let customerMap: Record<string, { full_name: string; email: string }> = {}
   if (customerIds.length > 0) {
     const { data: customers } = await supabase
@@ -43,13 +54,13 @@ export default async function AdminOrdersPage({
     }
   }
 
-  // 5. Gabungkan data
+  // Gabungkan data
   const ordersWithCustomer = orders?.map(order => ({
     ...order,
     customer: customerMap[order.customer_id] || { full_name: 'Unknown', email: '' }
   })) || []
 
-  // 6. Statistik
+  // Statistik
   const totalOrders = ordersWithCustomer.length
   const statusCounts = {
     semua: totalOrders,
@@ -70,16 +81,16 @@ export default async function AdminOrdersPage({
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Semua Pesanan</h1>
-            <p className="text-gray-600 mt-1">Kelola semua pesanan dari customer</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Semua Pesanan</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Kelola semua pesanan dari customer</p>
           </div>
           <Link
             href="/admin"
-            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 text-sm"
+            className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
           >
             ← Kembali ke Dashboard
           </Link>
@@ -87,35 +98,35 @@ export default async function AdminOrdersPage({
 
         {/* Statistik Cards */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
-          <div className="bg-white rounded-lg shadow p-3 text-center">
-            <p className="text-xs text-gray-500">Total</p>
-            <p className="text-lg font-bold text-gray-900">{statusCounts.semua}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-3 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{statusCounts.semua}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-3 text-center">
-            <p className="text-xs text-gray-500">Pending</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-3 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Pending</p>
             <p className="text-lg font-bold text-yellow-600">{statusCounts.pending}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-3 text-center">
-            <p className="text-xs text-gray-500">Dibayar</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-3 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Dibayar</p>
             <p className="text-lg font-bold text-blue-600">{statusCounts.paid}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-3 text-center">
-            <p className="text-xs text-gray-500">Diproses</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-3 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Diproses</p>
             <p className="text-lg font-bold text-purple-600">{statusCounts.processing}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-3 text-center">
-            <p className="text-xs text-gray-500">Selesai</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-3 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Selesai</p>
             <p className="text-lg font-bold text-green-600">{statusCounts.completed}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-3 text-center">
-            <p className="text-xs text-gray-500">Batal</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-3 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Batal</p>
             <p className="text-lg font-bold text-red-600">{statusCounts.cancelled}</p>
           </div>
         </div>
 
         {/* Filter */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
-          <div className="px-4 py-3 border-b border-gray-200 overflow-x-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 overflow-hidden mb-6">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
             <div className="flex space-x-2">
               {statusOptions.map((opt) => {
                 const isActive = statusFilter === opt.value
@@ -127,7 +138,7 @@ export default async function AdminOrdersPage({
                     className={`px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors ${
                       isActive
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
                     {opt.label} ({count})
@@ -140,33 +151,35 @@ export default async function AdminOrdersPage({
 
         {/* Tabel */}
         {error ? (
-          <div className="bg-red-50 text-red-700 p-4 rounded-md">Error: {error.message}</div>
+          <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 p-4 rounded-md">
+            Error: {error.message}
+          </div>
         ) : ordersWithCustomer.length > 0 ? (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelanggan</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metode</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kode</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pelanggan</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Metode</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tanggal</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {ordersWithCustomer.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-white">
                         {order.order_code}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {order.customer.full_name}
-                        <div className="text-xs text-gray-400">{order.customer.email}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500">{order.customer.email}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                         {formatRupiah(order.total_amount)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -174,16 +187,16 @@ export default async function AdminOrdersPage({
                           {getOrderStatusText(order.status)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {order.payment_method || 'midtrans'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(order.created_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <Link
                           href={`/admin/orders/${order.id}`}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
                         >
                           Detail
                         </Link>
@@ -195,8 +208,8 @@ export default async function AdminOrdersPage({
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-500">Belum ada pesanan</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-800/50 p-12 text-center">
+            <p className="text-gray-500 dark:text-gray-400">Belum ada pesanan</p>
           </div>
         )}
       </div>
