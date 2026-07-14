@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import 'chart.js/auto' // ✅ Auto-register semua skala Chart.js
 
 // ✅ Lazy loading Chart.js components
 const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), {

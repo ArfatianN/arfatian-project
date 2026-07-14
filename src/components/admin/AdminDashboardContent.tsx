@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { formatRupiah, getOrderStatusText, getOrderStatusColor } from '@/lib/utils'
-import AdminCharts from './AdminCharts' // ✅ Import komponen chart terpisah
+import AdminCharts from './AdminCharts'
 
 interface Order {
   id: string
@@ -18,7 +18,7 @@ interface Order {
   created_at: string
   paid_at: string | null
   completed_at: string | null
-  customer?: { full_name: string; email: string }
+  customer?: { full_name: string }
   services?: { name: string }
 }
 
@@ -116,7 +116,7 @@ export default function AdminDashboardContent({
           </div>
         </div>
 
-        {/* Charts - Gunakan AdminCharts dengan lazy loading */}
+        {/* Charts */}
         <AdminCharts monthlyData={monthlyData} statusData={statusData} />
 
         {/* Daftar Pesanan */}

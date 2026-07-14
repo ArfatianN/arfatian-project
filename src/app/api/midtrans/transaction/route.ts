@@ -8,25 +8,30 @@ export async function POST(request: Request) {
     const { orderId } = await request.json()
 
     if (!orderId) {
-      return NextResponse.json(
-        { error: 'orderId wajib diisi' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'orderId wajib diisi' }, { status: 400 })
     }
 
-    // 🔥 AMBIL ORDER TANPA JOIN (lebih aman)
+    // Ambil data order
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('*')
+      .select(`
+        *,
+        profiles!customer_id (
+          email,
+          full_name,
+          phone
+        ),
+        services (
+          name,
+          price
+        )
+      `)
       .eq('id', orderId)
       .single()
 
     if (orderError || !order) {
       console.error('Order not found:', orderError)
-      return NextResponse.json(
-        { error: 'Pesanan tidak ditemukan' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 })
     }
 
     if (order.status !== 'pending') {
@@ -36,37 +41,23 @@ export async function POST(request: Request) {
       )
     }
 
-    // 🔥 Ambil data customer terpisah
-    const { data: customer } = await supabase
-      .from('profiles')
-      .select('full_name, email, phone')
-      .eq('id', order.customer_id)
-      .single()
-
-    // 🔥 Ambil data service terpisah
-    const { data: service } = await supabase
-      .from('services')
-      .select('name')
-      .eq('id', order.service_id)
-      .single()
-
     // Parameter Midtrans
     const parameter = {
       transaction_details: {
-        order_id: order.order_code,
+        order_id: order.order_code, // ⚠️ Pakai order_code (unik), bukan ID
         gross_amount: order.total_amount,
       },
       customer_details: {
-        first_name: customer?.full_name || 'Customer',
-        email: customer?.email || 'customer@email.com',
-        phone: customer?.phone || '',
+        first_name: order.profiles?.full_name || 'Customer',
+        email: order.profiles?.email || 'customer@email.com',
+        phone: order.profiles?.phone || '',
       },
       item_details: [
         {
           id: order.service_id,
           price: order.total_amount,
           quantity: 1,
-          name: service?.name || 'Layanan Jasa',
+          name: order.services?.name || 'Layanan Jasa',
         },
       ],
       callbacks: {
@@ -77,12 +68,14 @@ export async function POST(request: Request) {
     }
 
     const transaction = await snap.createTransaction(parameter)
+    console.log('✅ Midtrans transaction created:', transaction)
 
+    // Simpan token
     await supabase
       .from('orders')
       .update({
         midtrans_token: transaction.token,
-        midtrans_order_id: order.order_code,
+        midtrans_order_id: order.order_code, // Pakai order_code
         payment_method: 'midtrans',
       })
       .eq('id', order.id)
