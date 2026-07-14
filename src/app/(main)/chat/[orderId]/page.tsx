@@ -1,20 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic' // ✅ Tambahkan import dynamic
+import dynamic from 'next/dynamic'
 
-// ✅ Lazy loading ChatBox (hanya dimuat saat halaman diakses)
-const ChatBox = dynamic(() => import('@/components/chat/ChatBox'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex justify-center items-center h-64">
-      <div className="animate-pulse flex flex-col items-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-500 dark:text-gray-400">Memuat chat...</p>
+// ✅ Perbaiki: dynamic import dengan benar
+const ChatBox = dynamic(
+  () => import('@/components/chat/ChatBox'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-500 dark:text-gray-400">Memuat chat...</p>
+        </div>
       </div>
-    </div>
-  ),
-})
+    ),
+  }
+)
 
 export default async function CustomerChatPage({
   params,
@@ -57,7 +60,7 @@ export default async function CustomerChatPage({
     )
   }
 
-  // 4. Cari admin (untuk otherUserId)
+  // 4. Cari admin
   const { data: admin, error: adminError } = await supabase
     .from('profiles')
     .select('id')
@@ -65,16 +68,12 @@ export default async function CustomerChatPage({
     .maybeSingle()
 
   if (adminError || !admin) {
-    console.warn('Admin not found, using fallback ID')
-    // Jika tidak ada admin, kita pakai ID admin sementara (misal dari chat room atau user pertama)
-    // Tapi kita coba ambil dari chat room dulu
     const { data: room } = await supabase
       .from('chat_rooms')
       .select('admin_id')
       .eq('order_id', orderId)
       .maybeSingle()
     if (room) {
-      // Gunakan admin_id yang ada di chat room
       return (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-4">
@@ -102,7 +101,7 @@ export default async function CustomerChatPage({
     }
   }
 
-  // 5. Pastikan chat room sudah ada, buat jika belum
+  // 5. Pastikan chat room sudah ada
   const { data: existingRoom } = await supabase
     .from('chat_rooms')
     .select('id')

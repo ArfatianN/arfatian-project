@@ -1,20 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic' // ✅ Tambahkan import dynamic
+import dynamic from 'next/dynamic'
 
-// ✅ Lazy loading ChatBox (hanya dimuat saat halaman diakses)
-const ChatBox = dynamic(() => import('@/components/chat/ChatBox'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex justify-center items-center h-64">
-      <div className="animate-pulse flex flex-col items-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-500 dark:text-gray-400">Memuat chat...</p>
+// ✅ Perbaiki: dynamic import dengan benar
+const ChatBox = dynamic(
+  () => import('@/components/chat/ChatBox'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-500 dark:text-gray-400">Memuat chat...</p>
+        </div>
       </div>
-    </div>
-  ),
-})
+    ),
+  }
+)
 
 export default async function AdminChatPage({
   params,
@@ -48,7 +51,7 @@ export default async function AdminChatPage({
     notFound()
   }
 
-  // 3. Cari customer, tapi jika tidak ada, tetap lanjutkan
+  // 3. Cari customer
   let customerId = order.customer_id
   const { data: customer } = await supabase
     .from('profiles')
@@ -60,7 +63,6 @@ export default async function AdminChatPage({
     customerId = customer.id
   } else {
     console.warn('Customer profile not found, using order.customer_id:', order.customer_id)
-    // Tetap pakai ID dari order
   }
 
   // 4. Buat chat room jika belum ada
