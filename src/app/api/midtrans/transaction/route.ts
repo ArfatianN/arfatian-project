@@ -2,62 +2,93 @@ import { createClient } from '@/lib/supabase/server'
 import { snap } from '@/lib/midtrans'
 import { NextResponse } from 'next/server'
 
+// ✅ Pastikan API route tidak di-static-kan
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const { orderId } = await request.json()
+    console.log('🔵 [Transaction] Request received')
 
-    if (!orderId) {
-      return NextResponse.json({ error: 'orderId wajib diisi' }, { status: 400 })
+    // 1. Parse body
+    const body = await request.json().catch(() => null)
+    if (!body) {
+      console.error('❌ [Transaction] Invalid JSON body')
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      )
     }
 
-    // Ambil data order
+    const { orderId } = body
+    console.log(`🔵 [Transaction] Order ID: ${orderId}`)
+
+    if (!orderId) {
+      console.error('❌ [Transaction] Missing orderId')
+      return NextResponse.json(
+        { error: 'orderId wajib diisi' },
+        { status: 400 }
+      )
+    }
+
+    const supabase = await createClient()
+
+    // 2. Ambil data order
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select(`
-        *,
-        profiles!customer_id (
-          email,
-          full_name,
-          phone
-        ),
-        services (
-          name,
-          price
-        )
-      `)
+      .select('*')
       .eq('id', orderId)
       .single()
 
     if (orderError || !order) {
-      console.error('Order not found:', orderError)
-      return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 })
+      console.error('❌ [Transaction] Order not found:', orderError)
+      return NextResponse.json(
+        { error: 'Pesanan tidak ditemukan' },
+        { status: 404 }
+      )
     }
 
+    console.log(`🔵 [Transaction] Order found: ${order.order_code}, status: ${order.status}`)
+
     if (order.status !== 'pending') {
+      console.warn(`⚠️ [Transaction] Order status is ${order.status}, not pending`)
       return NextResponse.json(
         { error: 'Pesanan sudah diproses' },
         { status: 400 }
       )
     }
 
-    // Parameter Midtrans
+    // 3. Ambil data customer terpisah
+    const { data: customer } = await supabase
+      .from('profiles')
+      .select('full_name, email, phone')
+      .eq('id', order.customer_id)
+      .single()
+
+    // 4. Ambil data service terpisah
+    const { data: service } = await supabase
+      .from('services')
+      .select('name')
+      .eq('id', order.service_id)
+      .single()
+
+    // 5. Parameter Midtrans
     const parameter = {
       transaction_details: {
         order_id: order.order_code,
         gross_amount: order.total_amount,
       },
       customer_details: {
-        first_name: order.profiles?.full_name || 'Customer',
-        email: order.profiles?.email || 'customer@email.com',
-        phone: order.profiles?.phone || '',
+        first_name: customer?.full_name || 'Customer',
+        email: customer?.email || 'customer@email.com',
+        phone: customer?.phone || '',
       },
       item_details: [
         {
           id: order.service_id,
           price: order.total_amount,
           quantity: 1,
-          name: order.services?.name || 'Layanan Jasa',
+          name: service?.name || 'Layanan Jasa',
         },
       ],
       callbacks: {
@@ -67,10 +98,13 @@ export async function POST(request: Request) {
       },
     }
 
-    const transaction = await snap.createTransaction(parameter)
-    console.log('✅ Midtrans transaction created:', transaction)
+    console.log('🔵 [Transaction] Creating Midtrans transaction...')
 
-    // Simpan token
+    // 6. Buat transaksi di Midtrans
+    const transaction = await snap.createTransaction(parameter)
+    console.log('✅ [Transaction] Midtrans transaction created:', transaction.token)
+
+    // 7. Simpan token ke database
     await supabase
       .from('orders')
       .update({
@@ -80,13 +114,16 @@ export async function POST(request: Request) {
       })
       .eq('id', order.id)
 
+    console.log('✅ [Transaction] Token saved to database')
+
+    // 8. Kembalikan token ke frontend
     return NextResponse.json({
       token: transaction.token,
       redirect_url: transaction.redirect_url,
     })
 
   } catch (error) {
-    console.error('Midtrans Error:', error)
+    console.error('❌ [Transaction] Error:', error)
     return NextResponse.json(
       { error: 'Gagal memproses pembayaran: ' + (error as Error).message },
       { status: 500 }
