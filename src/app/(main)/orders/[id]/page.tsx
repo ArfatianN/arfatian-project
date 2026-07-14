@@ -5,37 +5,15 @@ import dynamic from 'next/dynamic'
 import { formatRupiah, formatDate } from '@/lib/utils'
 import OrderStatusBadge from '@/components/orders/OrderStatusBadge'
 
-// ✅ Dynamic import ChatBox dengan benar
-const ChatBox = dynamic(
-  () => import('@/components/chat/ChatBox'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-500 dark:text-gray-400">Memuat chat...</p>
-        </div>
-      </div>
-    ),
-  }
-)
+// ✅ Dynamic import ChatBox (tanpa loading state)
+const ChatBox = dynamic(() => import('@/components/chat/ChatBox'), {
+  ssr: false,
+})
 
-// ✅ Dynamic import ReviewForm dengan benar
-const ReviewForm = dynamic(
-  () => import('@/components/orders/ReviewForm'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">Memuat form review...</p>
-        </div>
-      </div>
-    ),
-  }
-)
+// ✅ Dynamic import ReviewForm (tanpa loading state)
+const ReviewForm = dynamic(() => import('@/components/orders/ReviewForm'), {
+  ssr: false,
+})
 
 export default async function OrderDetailPage({
   params,
