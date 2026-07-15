@@ -2,6 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { snap } from '@/lib/midtrans'
 import { NextResponse } from 'next/server'
 
+// ✅ Pastikan route tidak di-cache dan berjalan di Node.js
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -33,7 +37,7 @@ export async function POST(request: Request) {
       .single()
 
     if (orderError || !order) {
-      console.error('Order not found:', orderError)
+      console.error('❌ Order not found:', orderError)
       return NextResponse.json(
         { error: 'Pesanan tidak ditemukan' },
         { status: 404 }
@@ -92,7 +96,7 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    console.error('Midtrans Error:', error)
+    console.error('❌ Midtrans Error:', error)
     return NextResponse.json(
       { error: 'Gagal memproses pembayaran: ' + (error as Error).message },
       { status: 500 }
