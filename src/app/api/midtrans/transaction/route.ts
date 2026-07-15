@@ -1,8 +1,8 @@
-// src/app/api/midtrans/transaction/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { snap } from '@/lib/midtrans'
 import { NextResponse } from 'next/server'
 
+// ✅ Tambahkan konfigurasi ini agar Vercel tidak meng-cache route
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -18,21 +18,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // 1. Ambil data order
+    // 🔥 AMBIL ORDER TANPA JOIN (lebih aman)
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select(`
-        *,
-        profiles!customer_id (
-          email,
-          full_name,
-          phone
-        ),
-        services (
-          name,
-          price
-        )
-      `)
+      .select('*')
       .eq('id', orderId)
       .single()
 
@@ -51,23 +40,37 @@ export async function POST(request: Request) {
       )
     }
 
-    // 2. Parameter Midtrans
+    // 🔥 Ambil data customer terpisah
+    const { data: customer } = await supabase
+      .from('profiles')
+      .select('full_name, email, phone')
+      .eq('id', order.customer_id)
+      .single()
+
+    // 🔥 Ambil data service terpisah
+    const { data: service } = await supabase
+      .from('services')
+      .select('name')
+      .eq('id', order.service_id)
+      .single()
+
+    // Parameter Midtrans
     const parameter = {
       transaction_details: {
         order_id: order.order_code,
         gross_amount: order.total_amount,
       },
       customer_details: {
-        first_name: order.profiles?.full_name || 'Customer',
-        email: order.profiles?.email || 'customer@email.com',
-        phone: order.profiles?.phone || '',
+        first_name: customer?.full_name || 'Customer',
+        email: customer?.email || 'customer@email.com',
+        phone: customer?.phone || '',
       },
       item_details: [
         {
           id: order.service_id,
           price: order.total_amount,
           quantity: 1,
-          name: order.services?.name || 'Layanan Jasa',
+          name: service?.name || 'Layanan Jasa',
         },
       ],
       callbacks: {
@@ -77,11 +80,8 @@ export async function POST(request: Request) {
       },
     }
 
-    // 3. Buat transaksi di Midtrans
     const transaction = await snap.createTransaction(parameter)
-    console.log('✅ Midtrans transaction created:', transaction.token)
 
-    // 4. Simpan token ke database
     await supabase
       .from('orders')
       .update({
