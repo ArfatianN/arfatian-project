@@ -26,13 +26,35 @@ export function generateOrderCode(): string {
   return `ORD-${year}${month}${day}-${random}`
 }
 
-// Fungsi untuk format tanggal
+// ✅ Fungsi untuk format tanggal dengan timezone WIB (Asia/Jakarta)
 export function formatDate(date: string | Date): string {
   const d = new Date(date)
   return new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta', // ✅ Tambahkan timezone WIB
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d)
+}
+
+// ✅ Fungsi untuk format tanggal tanpa jam (hanya tanggal)
+export function formatDateShort(date: string | Date): string {
+  const d = new Date(date)
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(d)
+}
+
+// ✅ Fungsi untuk format waktu saja (jam:menit)
+export function formatTime(date: string | Date): string {
+  const d = new Date(date)
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
     hour: '2-digit',
     minute: '2-digit',
   }).format(d)
@@ -53,11 +75,11 @@ export function getOrderStatusText(status: string): string {
 // Fungsi untuk mendapatkan warna badge status
 export function getOrderStatusColor(status: string): string {
   const colorMap: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    paid: 'bg-blue-100 text-blue-800',
-    processing: 'bg-purple-100 text-purple-800',
-    completed: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    paid: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    processing: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   }
-  return colorMap[status] || 'bg-gray-100 text-gray-800'
+  return colorMap[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
 }
