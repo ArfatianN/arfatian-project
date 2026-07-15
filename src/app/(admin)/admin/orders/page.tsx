@@ -1,12 +1,10 @@
-import { cache } from 'react' // ✅ Tambahkan cache
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatRupiah, formatDate, getOrderStatusText, getOrderStatusColor } from '@/lib/utils'
 
-// ✅ Halaman dinamis karena filter status
 export const dynamic = 'force-dynamic'
 
-// ✅ Caching query untuk orders (admin melihat semua)
 const getOrders = cache(async (statusFilter: string) => {
   const supabase = await createClient()
   let query = supabase
@@ -25,39 +23,38 @@ const getOrders = cache(async (statusFilter: string) => {
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }> // ✅ searchParams adalah Promise
+  searchParams: Promise<{ status?: string }>
 }) {
-  const { status } = await searchParams // ✅ Await searchParams
+  const { status } = await searchParams
   const statusFilter = status || 'semua'
 
   const supabase = await createClient()
 
-  // Ambil orders dengan cache
   const { data: orders, error } = await getOrders(statusFilter)
 
   // Kumpulkan customer_id unik
   const customerIds = [...new Set(orders?.map(o => o.customer_id).filter(Boolean) || [])]
 
-  // Ambil data customer
-  let customerMap: Record<string, { full_name: string; email: string }> = {}
+  // Ambil data customer (hanya full_name, karena email tidak ada di profiles)
+  let customerMap: Record<string, { full_name: string }> = {}
   if (customerIds.length > 0) {
     const { data: customers } = await supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, full_name') // ✅ Hapus email
       .in('id', customerIds)
 
     if (customers) {
       customerMap = customers.reduce((acc, c) => {
-        acc[c.id] = { full_name: c.full_name || 'Unknown', email: c.email || '' }
+        acc[c.id] = { full_name: c.full_name || 'Unknown' }
         return acc
-      }, {} as Record<string, { full_name: string; email: string }>)
+      }, {} as Record<string, { full_name: string }>)
     }
   }
 
   // Gabungkan data
   const ordersWithCustomer = orders?.map(order => ({
     ...order,
-    customer: customerMap[order.customer_id] || { full_name: 'Unknown', email: '' }
+    customer: customerMap[order.customer_id] || { full_name: 'Unknown' }
   })) || []
 
   // Statistik
@@ -177,7 +174,6 @@ export default async function AdminOrdersPage({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {order.customer.full_name}
-                        <div className="text-xs text-gray-400 dark:text-gray-500">{order.customer.email}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                         {formatRupiah(order.total_amount)}

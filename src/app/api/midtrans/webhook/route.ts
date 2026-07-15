@@ -7,78 +7,109 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('📩 Webhook received:', JSON.stringify(body, null, 2))
 
+    // 1. Verifikasi signature
     const signature = request.headers.get('x-midtrans-signature') || ''
     const serverKey = process.env.MIDTRANS_SERVER_KEY!
 
-    const { order_id, status_code, gross_amount } = body
+    const { orders_id, status_code, gross_amount } = body
 
-    // Format signature yang benar dari Midtrans: 
-    // sha512(order_id + status_code + gross_amount + server_key)
-    const signatureString = order_id + status_code + gross_amount + serverKey
-    
+    const signatureString = `${orders_id}${status_code}${gross_amount}${serverKey}`
+
     const expectedSignature = crypto
       .createHmac('sha512', serverKey)
       .update(signatureString)
       .digest('hex')
 
-    console.log('🔑 Signature string:', signatureString)
-    console.log('🔑 Expected signature:', expectedSignature)
-    console.log('🔑 Received signature:', signature)
-
-    // Jika signature tidak valid, log tapi lanjutkan (untuk sandbox testing)
-    // Di production, sebaiknya return 401
     if (signature !== expectedSignature) {
-      console.warn('⚠️ Invalid signature! But continuing for sandbox testing...')
-      // Untuk sandbox, tetap lanjutkan agar webhook berfungsi
-    } else {
-      console.log('✅ Signature verified')
+      console.warn('❌ Invalid signature!')
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
-    // Ambil data dari webhook
-    const { order_id: orderId, transaction_status, fraud_status, payment_type } = body
-    console.log(`📦 Order: ${orderId}, Status: ${transaction_status}`)
+    console.log('✅ Signature verified')
 
-    // Cari order berdasarkan order_code
+    // 2. Ambil data dari webhook
+    const { order_id, transaction_status, fraud_status, payment_type } = body
+    console.log(`📦 Order ID: ${order_id}, Status: ${transaction_status}, Payment: ${payment_type}`)
+
+    // 3. Cari order
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .select('id, status')
-      .eq('order_code', orderId)
+      .eq('order_code', order_id)
       .maybeSingle()
 
     if (orderError || !order) {
-      console.warn('❌ Order not found for order_code:', orderId)
+      console.warn('❌ Order not found for order_code:', order_id, orderError)
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
+    console.log(`🔍 Found order: ${order.id}, current status: ${order.status}`)
+
+    // 4. Tentukan status baru
     let newStatus = order.status
-    if (transaction_status === 'settlement' || (transaction_status === 'capture' && fraud_status === 'accept')) {
+
+    if (transaction_status === 'capture') {
+      if (fraud_status === 'accept') {
+        newStatus = 'paid'
+      }
+    } else if (transaction_status === 'settlement') {
       newStatus = 'paid'
     } else if (transaction_status === 'pending') {
       newStatus = 'pending'
-    } else if (['deny', 'cancel', 'expire'].includes(transaction_status)) {
+    } else if (transaction_status === 'deny' || 
+               transaction_status === 'cancel' || 
+               transaction_status === 'expire') {
       newStatus = 'cancelled'
     }
 
-    if (newStatus !== order.status) {
-      const updateData: any = { status: newStatus, payment_method: payment_type || 'midtrans' }
-      if (newStatus === 'paid') updateData.paid_at = new Date().toISOString()
+    console.log(`🔄 Updating status from ${order.status} to ${newStatus}`)
 
-      await supabaseAdmin.from('orders').update(updateData).eq('id', order.id)
-      console.log(`✅ Order ${orderId} updated to ${newStatus}`)
+    // 5. Update database
+    if (newStatus !== order.status) {
+      const updateData: any = {
+        status: newStatus,
+        payment_method: payment_type || 'midtrans',
+      }
+
+      if (newStatus === 'paid') {
+        updateData.paid_at = new Date().toISOString()
+      }
+
+      console.log(`📝 Update data:`, updateData)
+
+      const { error: updateError } = await supabaseAdmin
+        .from('orders')
+        .update(updateData)
+        .eq('id', order.id)
+
+      if (updateError) {
+        console.error('❌ Update failed:', updateError)
+        return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+      }
+
+      console.log(`✅ Order ${order_id} updated to ${newStatus}`)
+    } else {
+      console.log(`ℹ️ Status already ${order.status}, no update needed`)
     }
 
-    await supabaseAdmin.from('payment_webhooks').insert({
-      order_id: order.id,
-      event_type: transaction_status,
-      raw_payload: body,
-      signature_verified: signature === expectedSignature,
-      processed_at: new Date().toISOString(),
-    })
+    // 6. Simpan log webhook
+    await supabaseAdmin
+      .from('payment_webhooks')
+      .insert({
+        order_id: order.id,
+        event_type: transaction_status,
+        raw_payload: body,
+        signature_verified: true,
+        processed_at: new Date().toISOString(),
+      })
 
     return NextResponse.json({ success: true })
 
   } catch (error) {
     console.error('❌ Webhook error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

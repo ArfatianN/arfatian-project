@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Navbar from '@/components/ui/Navbar'
+import BottomNav from '@/components/ui/BottomNav'
 
 export default async function MainLayout({
   children,
@@ -28,7 +29,8 @@ export default async function MainLayout({
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <Navbar role={role as 'admin' | 'customer'} userName={userName} />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+      <BottomNav role={role as 'admin' | 'customer'} />
     </div>
   )
 }
