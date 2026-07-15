@@ -11,35 +11,72 @@ export async function POST(request: Request) {
     const signature = request.headers.get('x-midtrans-signature') || ''
     const serverKey = process.env.MIDTRANS_SERVER_KEY!
 
-    const { orders_id, status_code, gross_amount } = body
+    // Ambil data dari body
+    const { order_id, status_code, gross_amount } = body
 
-    const signatureString = `${orders_id}${status_code}${gross_amount}${serverKey}`
+    // Signature string: order_id + status_code + gross_amount + server_key
+    const signatureString = `${order_id}${status_code}${gross_amount}${serverKey}`
 
     const expectedSignature = crypto
       .createHmac('sha512', serverKey)
       .update(signatureString)
       .digest('hex')
 
+    console.log('🔑 Received signature:', signature)
+    console.log('🔑 Expected signature:', expectedSignature)
+
     if (signature !== expectedSignature) {
       console.warn('❌ Invalid signature!')
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      // Fallback untuk development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ Development mode: skipping signature verification')
+      } else {
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      }
+    } else {
+      console.log('✅ Signature verified')
     }
 
-    console.log('✅ Signature verified')
-
-    // 2. Ambil data dari webhook
-    const { order_id, transaction_status, fraud_status, payment_type } = body
+    // 2. Ambil status pembayaran
+    const { transaction_status, fraud_status, payment_type } = body
     console.log(`📦 Order ID: ${order_id}, Status: ${transaction_status}, Payment: ${payment_type}`)
 
-    // 3. Cari order
-    const { data: order, error: orderError } = await supabaseAdmin
+    // 3. Cari order berdasarkan order_code
+    let order = null
+    let orderError = null
+
+    const { data: orderData, error: findError } = await supabaseAdmin
       .from('orders')
       .select('id, status')
-      .eq('order_code', order_id)
+      .eq('order_code', order_id)  // order_code adalah kolom di database
       .maybeSingle()
 
-    if (orderError || !order) {
-      console.warn('❌ Order not found for order_code:', order_id, orderError)
+    if (findError) {
+      console.error('❌ Error finding order:', findError)
+      orderError = findError
+    } else {
+      order = orderData
+    }
+
+    // Jika tidak ditemukan, coba cari berdasarkan id (fallback)
+    if (!order) {
+      console.log(`⚠️ Order not found by order_code, trying by id: ${order_id}`)
+      const { data: orderById, error: byIdError } = await supabaseAdmin
+        .from('orders')
+        .select('id, status')
+        .eq('id', order_id)
+        .maybeSingle()
+
+      if (byIdError) {
+        console.error('❌ Error finding order by id:', byIdError)
+        orderError = byIdError
+      } else {
+        order = orderById
+      }
+    }
+
+    if (!order) {
+      console.warn('❌ Order not found for order_id:', order_id)
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
@@ -64,7 +101,7 @@ export async function POST(request: Request) {
 
     console.log(`🔄 Updating status from ${order.status} to ${newStatus}`)
 
-    // 5. Update database
+    // 5. Update database jika status berubah
     if (newStatus !== order.status) {
       const updateData: any = {
         status: newStatus,
@@ -74,8 +111,6 @@ export async function POST(request: Request) {
       if (newStatus === 'paid') {
         updateData.paid_at = new Date().toISOString()
       }
-
-      console.log(`📝 Update data:`, updateData)
 
       const { error: updateError } = await supabaseAdmin
         .from('orders')
@@ -99,7 +134,7 @@ export async function POST(request: Request) {
         order_id: order.id,
         event_type: transaction_status,
         raw_payload: body,
-        signature_verified: true,
+        signature_verified: signature === expectedSignature,
         processed_at: new Date().toISOString(),
       })
 
