@@ -114,7 +114,7 @@ export default async function AdminDashboard() {
   // Pendapatan hanya dari yang sudah diverifikasi
   const verifiedOrders = orders.filter(o => 
     (o.status === 'paid' || o.status === 'processing' || o.status === 'completed') &&
-    (o.payment_method === 'midtrans' || o.verified_by !== null)
+  (o.payment_method === 'midtrans' || o.verified_by !== null)
   )
   const totalRevenue = verifiedOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0)
 
