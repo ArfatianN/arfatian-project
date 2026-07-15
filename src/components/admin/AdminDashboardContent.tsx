@@ -145,8 +145,14 @@ export default function AdminDashboardContent({
                   {orders.map((order) => {
                     const needsVerification = order.status === 'pending' && 
                       (order.payment_method === 'cash' || order.payment_method === 'bank_transfer')
-                    
-                    const isVerified = order.verified_by !== null
+
+                    // Logika verifikasi yang benar:
+                    // 1. Jika verified_by tidak null → Manual
+                    // 2. Jika midtrans dan status paid → Otomatis
+                    // 3. Selain itu → Belum
+                    const isManualVerified = order.verified_by !== null
+                    const isAutoVerified = order.payment_method === 'midtrans' && order.status === 'paid'
+                    const isVerified = isManualVerified || isAutoVerified
 
                     return (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
@@ -171,9 +177,9 @@ export default function AdminDashboardContent({
                           {order.payment_method || 'midtrans'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {isVerified ? (
-                            <span className="text-green-600 dark:text-green-400">✅ Diverifikasi</span>
-                          ) : order.payment_method === 'midtrans' && order.status === 'paid' ? (
+                          {isManualVerified ? (
+                            <span className="text-green-600 dark:text-green-400">✅ Manual</span>
+                          ) : isAutoVerified ? (
                             <span className="text-blue-600 dark:text-blue-400">✅ Otomatis</span>
                           ) : (
                             <span className="text-gray-400">⏳ Belum</span>
