@@ -1,8 +1,8 @@
+// src/app/api/midtrans/transaction/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { snap } from '@/lib/midtrans'
 import { NextResponse } from 'next/server'
 
-// ✅ Pastikan route tidak di-cache dan berjalan di Node.js
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Ambil data order
+    // 1. Ambil data order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       .single()
 
     if (orderError || !order) {
-      console.error('❌ Order not found:', orderError)
+      console.error('Order not found:', orderError)
       return NextResponse.json(
         { error: 'Pesanan tidak ditemukan' },
         { status: 404 }
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Parameter Midtrans
+    // 2. Parameter Midtrans
     const parameter = {
       transaction_details: {
         order_id: order.order_code,
@@ -77,10 +77,11 @@ export async function POST(request: Request) {
       },
     }
 
+    // 3. Buat transaksi di Midtrans
     const transaction = await snap.createTransaction(parameter)
     console.log('✅ Midtrans transaction created:', transaction.token)
 
-    // Simpan token
+    // 4. Simpan token ke database
     await supabase
       .from('orders')
       .update({
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    console.error('❌ Midtrans Error:', error)
+    console.error('Midtrans Error:', error)
     return NextResponse.json(
       { error: 'Gagal memproses pembayaran: ' + (error as Error).message },
       { status: 500 }
