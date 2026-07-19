@@ -13,13 +13,12 @@ interface NavbarProps {
 }
 
 export default function Navbar({ role, userName }: NavbarProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
 
-  // ✅ PERBAIKAN DI SINI: Layanan -> href='/'
+  // Menu untuk desktop
   const menuItems = role === 'admin' ? [
     { label: 'Dashboard', href: '/admin' },
     { label: 'Kelola Jasa', href: '/admin/services' },
@@ -41,9 +40,6 @@ export default function Navbar({ role, userName }: NavbarProps) {
       const target = event.target as HTMLElement
       if (!target.closest('.profile-dropdown')) {
         setIsProfileOpen(false)
-      }
-      if (!target.closest('.mobile-menu')) {
-        setIsMenuOpen(false)
       }
     }
     document.addEventListener('click', handleClickOutside)
@@ -75,7 +71,7 @@ export default function Navbar({ role, userName }: NavbarProps) {
             </Link>
           </div>
 
-          {/* Desktop Menu */}
+          {/* Desktop Menu (hanya muncul di layar >= md) */}
           <div className="hidden md:flex items-center space-x-4">
             {menuItems.map((item) => {
               const isActive = pathname === item.href || 
@@ -96,7 +92,7 @@ export default function Navbar({ role, userName }: NavbarProps) {
             })}
           </div>
 
-          {/* Right Section */}
+          {/* Right Section (Selalu tampil) */}
           <div className="flex items-center space-x-4">
             <ThemeToggle />
 
@@ -154,70 +150,8 @@ export default function Navbar({ role, userName }: NavbarProps) {
                 </div>
               )}
             </div>
-
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none mobile-menu"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
           </div>
         </div>
-
-        {isMenuOpen && (
-          <div className="md:hidden py-2 border-t border-gray-100 dark:border-gray-700">
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href !== '/' && pathname?.startsWith(item.href))
-              return (
-                <Link
-                  key={`${item.href}-${item.label}`}
-                  href={item.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`block px-4 py-2 text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              )
-            })}
-            <div className="border-t border-gray-100 dark:border-gray-700 mt-2 pt-2">
-              <Link
-                href="/profile"
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span>Profil</span>
-                </div>
-              </Link>
-              <button
-                onClick={() => {
-                  setIsMenuOpen(false)
-                  handleLogout()
-                }}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   )
