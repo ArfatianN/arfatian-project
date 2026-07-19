@@ -317,13 +317,14 @@ button.bg-gray-300:hover {
 }
 
 /* ==========================================
-   REVIEW STARS - Pastikan warna inline style berjalan
+   REVIEW STARS - Warna diatur oleh inline style
    ========================================== */
 .review-star {
-  color: inherit !important;
+  /* Biarkan inline style yang bekerja */
+  transition: transform 0.2s ease;
 }
 
-/* Fallback jika inline style tidak jalan */
+/* Fallback jika inline style tidak jalan (opsional) */
 .review-star.active {
   color: #facc15 !important;
 }
