@@ -315,3 +315,7 @@ button.bg-gray-300:hover {
     padding-bottom: 4rem; /* 64px = tinggi bottom nav */
   }
 }
+
+.review-star {
+  color: inherit !important;
+}

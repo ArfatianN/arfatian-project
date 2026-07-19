@@ -56,19 +56,26 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
           Rating
         </label>
         <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              className="text-3xl hover:scale-110 transition-transform focus:outline-none"
-              style={{
-                color: star <= rating ? '#fbbf24' : '#d1d5db',
-              }}
-            >
-              ★
-            </button>
-          ))}
+          {[1, 2, 3, 4, 5].map((star) => {
+            const isActive = star <= rating
+            return (
+              <button
+                key={star}
+                type="button"
+                onClick={() => {
+                  console.log('⭐ Bintang diklik:', star) // <- Debug
+                  setRating(star)
+                }}
+                className="text-3xl hover:scale-110 transition-transform focus:outline-none cursor-pointer"
+                style={{
+                  color: isActive ? '#facc15' : '#d1d5db',
+                  textShadow: isActive ? '0 0 8px rgba(250, 204, 21, 0.5)' : 'none',
+                }}
+              >
+                ★
+              </button>
+            )
+          })}
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Rating: {rating} dari 5 bintang
