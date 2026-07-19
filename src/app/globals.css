@@ -323,11 +323,3 @@ button.bg-gray-300:hover {
   /* Biarkan inline style yang bekerja */
   transition: transform 0.2s ease;
 }
-
-/* Fallback jika inline style tidak jalan (opsional) */
-.review-star.active {
-  color: #facc15 !important;
-}
-.review-star.inactive {
-  color: #d1d5db !important;
-}
