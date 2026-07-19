@@ -59,18 +59,28 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
           {[1, 2, 3, 4, 5].map((star) => {
             const isActive = star <= rating
             return (
-              <button
+              <div
                 key={star}
-                type="button"
-                onClick={() => setRating(star)}
-                className="review-star text-3xl hover:scale-110 transition-transform focus:outline-none cursor-pointer"
+                onClick={() => {
+                  console.log('⭐ Bintang diklik:', star)
+                  setRating(star)
+                }}
+                role="button"
+                tabIndex={0}
+                className="cursor-pointer text-3xl hover:scale-110 transition-transform select-none"
                 style={{
-                  color: isActive ? '#facc15 !important' : '#d1d5db !important',
+                  color: isActive ? '#facc15' : '#d1d5db',
                   textShadow: isActive ? '0 0 8px rgba(250, 204, 21, 0.5)' : 'none',
-                } as any}
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setRating(star)
+                  }
+                }}
               >
                 ★
-              </button>
+              </div>
             )
           })}
         </div>
