@@ -63,10 +63,10 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
                 key={star}
                 type="button"
                 onClick={() => {
-                  console.log('⭐ Bintang diklik:', star) // <- Debug
+                  console.log('⭐ Bintang diklik:', star)
                   setRating(star)
                 }}
-                className="text-3xl hover:scale-110 transition-transform focus:outline-none cursor-pointer"
+                className="review-star text-3xl hover:scale-110 transition-transform focus:outline-none cursor-pointer"
                 style={{
                   color: isActive ? '#facc15' : '#d1d5db',
                   textShadow: isActive ? '0 0 8px rgba(250, 204, 21, 0.5)' : 'none',
