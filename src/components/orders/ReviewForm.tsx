@@ -61,16 +61,18 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
               key={star}
               type="button"
               onClick={() => setRating(star)}
-              className={`text-2xl ${
-                star <= rating 
-                  ? 'text-yellow-400 dark:text-yellow-300' 
-                  : 'text-gray-300 dark:text-gray-600'
-              } hover:scale-110 transition-transform`}
+              className="text-3xl hover:scale-110 transition-transform focus:outline-none"
+              style={{
+                color: star <= rating ? '#fbbf24' : '#d1d5db',
+              }}
             >
               ★
             </button>
           ))}
         </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Rating: {rating} dari 5 bintang
+        </p>
       </div>
 
       <div className="mb-4">
@@ -90,7 +92,7 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
       <button
         type="submit"
         disabled={submitting}
-        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
+        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
       >
         {submitting ? 'Menyimpan...' : 'Kirim Ulasan'}
       </button>
