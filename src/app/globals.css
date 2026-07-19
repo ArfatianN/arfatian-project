@@ -228,7 +228,7 @@ input[type="checkbox"]:checked {
 /* ==========================================
    BUTTON & LINK (kecuali tombol berwarna)
    ========================================== */
-button:not(.bg-blue-600):not(.bg-green-600):not(.bg-red-600):not(.bg-yellow-600):not(.bg-purple-600):not(.bg-indigo-600):not(.bg-pink-600):not(.bg-orange-600):not(.bg-teal-600),
+button:not(.bg-blue-600):not(.bg-green-600):not(.bg-red-600):not(.bg-yellow-600):not(.bg-purple-600):not(.bg-indigo-600):not(.bg-pink-600):not(.bg-orange-600):not(.bg-teal-600):not(.review-star),
 a:not(.text-blue-600):not(.text-green-600):not(.text-red-600):not(.text-yellow-600):not(.text-purple-600):not(.text-indigo-600):not(.text-pink-600):not(.text-orange-600):not(.text-teal-600) {
   color: var(--text-primary) !important;
 }
