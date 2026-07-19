@@ -12,7 +12,7 @@ export default function BottomNav({ role }: BottomNavProps) {
 
   // Menu untuk customer
   const customerMenu = [
-    { label: 'Beranda', href: '/', icon: '🏠' },
+    { label: 'Beranda', href: '/dashboard', icon: '🏠' },
     { label: 'Layanan', href: '/services', icon: '🔧' },
     { label: 'Pesanan', href: '/orders', icon: '📦' },
     { label: 'Profil', href: '/profile', icon: '👤' },
