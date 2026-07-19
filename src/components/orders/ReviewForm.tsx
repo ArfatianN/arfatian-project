@@ -42,17 +42,17 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Berikan Ulasan</h3>
+    <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Berikan Ulasan</h3>
       
       {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded-md mb-4 text-sm">
+        <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 p-3 rounded-md mb-4 text-sm">
           {error}
         </div>
       )}
 
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Rating
         </label>
         <div className="flex gap-2">
@@ -61,7 +61,11 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
               key={star}
               type="button"
               onClick={() => setRating(star)}
-              className={`text-2xl ${star <= rating ? 'text-yellow-400' : 'text-gray-300'} hover:scale-110 transition-transform`}
+              className={`text-2xl ${
+                star <= rating 
+                  ? 'text-yellow-400 dark:text-yellow-300' 
+                  : 'text-gray-300 dark:text-gray-600'
+              } hover:scale-110 transition-transform`}
             >
               ★
             </button>
@@ -70,7 +74,7 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
       </div>
 
       <div className="mb-4">
-        <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="comment" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Komentar (opsional)
         </label>
         <textarea
@@ -78,7 +82,7 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
           rows={3}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
           placeholder="Bagikan pengalaman Anda..."
         />
       </div>
@@ -86,7 +90,7 @@ export default function ReviewForm({ orderId, serviceId }: { orderId: string, se
       <button
         type="submit"
         disabled={submitting}
-        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
       >
         {submitting ? 'Menyimpan...' : 'Kirim Ulasan'}
       </button>
